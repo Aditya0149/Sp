@@ -63,12 +63,16 @@ export class AppComponent implements OnInit {
     });
 
     this.ipcService.on('json-destination-directory', (event, destinationPath) => {
-      
+      jsonFile.writeFileSync(path.join(destinationPath[0],this.spriteDataService.spriteConfig.animationPrefix)+".json",this.getHWJsonFormat());
+      //this.spriteDataService.writeJsonFile(this.previewComponent.allSpritesArray,destinationPath[0]);
+      alert("JSON file created");
     });
 
 
 
   }
+
+
 
   getFiles(event):void{
     event.preventDefault();
@@ -82,4 +86,58 @@ export class AppComponent implements OnInit {
   allowDrop(ev) {
     ev.preventDefault();
   }
+
+  getHWJsonFormat():Object{
+    let outputJsonObject = {};
+    outputJsonObject.frames = [];
+    outputJsonObject.sprite_sheets = [];
+    outputJsonObject.animations = [{}];
+    outputJsonObject.animations[0].frames = [];
+    let prefix = this.spriteDataService.spriteConfig.animationPrefix;
+    let frameRate = this.spriteDataService.spriteConfig.framerate;
+    //let inputObj = result.coordinates;
+
+    this.previewComponent.allSpritesArray.forEach( ( spriteData, index ) => {
+      let coordinates = spriteData.coordinates;
+      let properties = spriteData.properties;
+      let framesArray = [];
+      Object.keys(coordinates).forEach( key => {
+        let ip = coordinates[key];
+        let keyName = ''+key;
+        ip.name = key;
+        ip.sprite_x = ip.x;
+        delete(ip.x);
+        ip.sprite_y = ip.y;
+        delete(ip.y);
+        ip.sprite_index = index;
+        ip.colorRect = {
+          "width": Math.round( ip.width ),
+          "y": Math.round( ip.sprite_x ),
+          "height": Math.round( ip.height ),
+          "x": Math.round( ip.sprite_x )
+        }
+        outputJsonObject.frames.push(ip);
+        outputJsonObject.animations[0].frames.push({frame : keyName});
+      });
+      outputJsonObject.sprite_sheets.push(properties);
+
+    });
+
+    outputJsonObject.name = prefix;
+    outputJsonObject.info = {
+      "calc_type": "horizontal",
+      "min_height": 0,
+      "max_area": 2000000,
+      "max_height": -1,
+      "sort": "name",
+      "max_width": -1,
+      "min_width": 0,
+      "spacing": 1
+    };
+    outputJsonObject.animations[0].fps = frameRate;
+    outputJsonObject.animations[0].name = prefix;
+    return outputJsonObject;
+  }
+
+
 }
