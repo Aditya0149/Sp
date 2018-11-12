@@ -175,26 +175,48 @@ let template = [
       }
     }]
   },
+
   {
     label: 'Configurations',
-    accelerator: (() => {
-      if (process.platform === 'darwin') {
-        return 'Command+G'
-      } else {
-        return 'Ctrl+G'
+    submenu: [
+      {
+        label:"Export options",
+        accelerator: (() => {
+          if (process.platform === 'darwin') {
+            return 'Command+E'
+          } else {
+            return 'Ctrl+E'
+          }
+        })(),
+        click: (item, focusedWindow) => {
+          if (focusedWindow) {
+            mainWindow.webContents.send('toggle-display','Export options');
+          }
+        }
+      },
+      {
+        label:"File list",
+        accelerator: (() => {
+          if (process.platform === 'darwin') {
+            return 'Command+L'
+          } else {
+            return 'Ctrl+L'
+          }
+        })(),
+        click: (item, focusedWindow) => {
+          if (focusedWindow) {
+            mainWindow.webContents.send('toggle-display','File list');
+          }
+        }
       }
-    })(),
-    click: (item, focusedWindow) => {
-      if (focusedWindow) {
-      }
-    }
+    ]
   },
 
   {
     label:"Export",
     submenu: [
       {
-        label:"Export Sprite Images",
+        label:"Export Sprite sheets and JSON file",
         accelerator: (() => {
           if (process.platform === 'darwin') {
             return 'Command+I'
@@ -209,33 +231,13 @@ let template = [
             properties: ['openDirectory','showHiddenFiles']
           }, (files) => {
             if (files) {
-              mainWindow.webContents.send('sprite-destination-directory', files)
-            }
-          })
-        }
-      },
-      {
-        label:"Export Json file",
-        accelerator: (() => {
-          if (process.platform === 'darwin') {
-            return 'Command+J'
-          } else {
-            return 'Ctrl+J'
-          }
-        })(),
-        click: (item,focusedWindow) => {
-          dialog.showOpenDialog({
-            title : "Select a destination folder",
-            buttonLabel : "Select folder",
-            properties: ['openDirectory','showHiddenFiles']
-          }, (files) => {
-            if (files) {
-              mainWindow.webContents.send('json-destination-directory', files)
+              mainWindow.webContents.send('export-sprites', files)
             }
           })
         }
       }
     ]
+  },
 
   {
     label: 'Toggle Developer Tools',
@@ -252,4 +254,5 @@ let template = [
       }
     }
   }
+
 ]

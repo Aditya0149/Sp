@@ -16,13 +16,15 @@ var {ipcRenderer} = require('electron');
 @Component({
   selector: 'App',
   template:
-  `<div style="display:flex">
-    <div style="height:auto;width:500px;overflow:scroll;" (drop)="getFiles($event)" (dragover)="allowDrop($event)">
-      <div *ngIf="!fileArray.length">Upload Files Here</div>
-      <div *ngFor="let file of fileArray">{{ file.name }}</div>
+  `<div style="display:flex;justify-content:space-between;">
+    <div style="width:50%;">
+      <div (drop)="getFiles($event)" (dragover)="allowDrop($event)" class="file_list" *ngIf="displayFiles" >
+        <div *ngIf="!fileArray.length">Upload Files Here</div>
+        <div *ngFor="let file of fileArray">{{ file.name }}</div>
+      </div>
+      <Config *ngIf="!displayFiles" ></Config>
     </div>
-    <preview [previewFileArray]=fileArray></preview>
-    <Config *ngIf="fileArray.length" ></Config>
+    <Preview style="border:1px solid;width:50%;" [previewFileArray]=fileArray></Preview>
   </div>`,
 })
 export class AppComponent implements OnInit {
@@ -30,8 +32,10 @@ export class AppComponent implements OnInit {
   private previewComponent:PreviewComponent;
   public readonly name = 'electron-forge';
   public fileArray = [];
-  spriteArray = [];
-  message = "";
+  spriteArray = []; // ?
+  allSpritesArray = [];
+  files = [];
+  displayFiles = true;
   fileArrayObservable = new Subject<[]>();
   filesFetched = this.fileArrayObservable.asObservable();
 
@@ -41,7 +45,7 @@ export class AppComponent implements OnInit {
       fs.readdir(filesPath[0], (err, files) => {
         files.forEach(file => {
           let fileData = path.parse(file);
-          if (fileData.ext) { // ignore if its directory
+          if (fileData.ext == "." + this.spriteDataService.spriteConfig.fileType) { // ignore if its directory
               this.zone.run( ()=> {
                 this.fileArray.push({name:fileData.name+fileData.ext,path:filesPath[0]});
             });
@@ -52,22 +56,17 @@ export class AppComponent implements OnInit {
       this.ipcService.send('open-information-dialog',event);
     });
 
-    this.ipcService.on('sprite-destination-directory', (event, destinationPath) => {
-        let filepathWithPrefix = path.join(destinationPath[0],this.spriteDataService.spriteConfig.animationPrefix);
-        this.previewComponent.allSpritesArray.forEach( ( spriteData, index ) => {
-          fs.writeFileSync(filepathWithPrefix + "_" + index + ".png", spriteData.image, 'binary', function(err){
-                    if (err) throw err
-            });
-        });
-      alert("Sprite images created");
+    this.ipcService.on('export-sprites', (event, destinationPath) => {
+      this.writeImageData(destinationPath[0]);
     });
 
-    this.ipcService.on('json-destination-directory', (event, destinationPath) => {
-      jsonFile.writeFileSync(path.join(destinationPath[0],this.spriteDataService.spriteConfig.animationPrefix)+".json",this.getHWJsonFormat());
-      //this.spriteDataService.writeJsonFile(this.previewComponent.allSpritesArray,destinationPath[0]);
-      alert("JSON file created");
-    });
 
+    this.ipcService.on('toggle-display', (event,data) => {
+      this.zone.run( ()=> {
+        if (data == "Export options") this.displayFiles = false;
+        else this.displayFiles = true;
+      })
+    });
 
 
   }
@@ -87,6 +86,30 @@ export class AppComponent implements OnInit {
     ev.preventDefault();
   }
 
+  writeImageData(destinationPath){
+    this.fileArray.forEach( file => {
+      this.files.push(path.join(file.path,file.name));
+    } );
+    this.spriteDataService.getSpriteData(this.files);
+    this.spriteDataService.spriteDataObservable.subscribe(data => {
+      console.log(data);
+      this.allSpritesArray.push(data);
+    },
+    err => { console.log(err); },
+    complete => {
+        console.log("complete",this.allSpritesArray);
+        let filepathWithPrefix = path.join(destinationPath,this.spriteDataService.spriteConfig.animationPrefix);
+        this.allSpritesArray.forEach( ( spriteData, index ) => {
+          fs.writeFileSync(filepathWithPrefix + "_" + index + ".png", spriteData.image, 'binary', function(err){
+                if (err) throw err
+            });
+        });
+        jsonFile.writeFileSync(path.join(destinationPath,this.spriteDataService.spriteConfig.animationPrefix)+".json",this.getHWJsonFormat());
+        alert("Sprite images and json file exported");
+      }
+    );
+  }
+
   getHWJsonFormat():Object{
     let outputJsonObject = {};
     outputJsonObject.frames = [];
@@ -97,11 +120,12 @@ export class AppComponent implements OnInit {
     let frameRate = this.spriteDataService.spriteConfig.framerate;
     //let inputObj = result.coordinates;
 
-    this.previewComponent.allSpritesArray.forEach( ( spriteData, index ) => {
+    this.allSpritesArray.forEach( ( spriteData, index ) => {
       let coordinates = spriteData.coordinates;
       let properties = spriteData.properties;
       let framesArray = [];
       Object.keys(coordinates).forEach( key => {
+        //debugger;
         let ip = coordinates[key];
         let keyName = ''+key;
         ip.name = key;
@@ -118,9 +142,10 @@ export class AppComponent implements OnInit {
         }
         outputJsonObject.frames.push(ip);
         outputJsonObject.animations[0].frames.push({frame : keyName});
+        //debugger;
       });
       outputJsonObject.sprite_sheets.push(properties);
-
+      //debugger;
     });
 
     outputJsonObject.name = prefix;

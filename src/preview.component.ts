@@ -7,10 +7,11 @@ var path = require("path");
 var Pixelsmith = require('pixelsmith');
 
 @Component({
-  selector: 'preview',
+  selector: 'Preview',
   template:
-  `<div style="border:1px solid;width:400px;height:400px" (click)="generatePreivew($event)">
-    <div id="canvasWrapper" [hidden]="previewMode">
+  `<div style="width:100%;min-height:800px;" (click)="generatePreivew($event)">
+    <div id="previewWrapper" >
+
       <!-- input [(ngModel)]="frameRate" / -->
     </div>
     <!-- button (click)="!pause">pause</button -->
@@ -19,20 +20,8 @@ var Pixelsmith = require('pixelsmith');
 export class PreviewComponent implements OnInit {
   @Input() previewFileArray;
   files = [];
-  message = "Click to generate preview";
-  spriteData:Object = {};
-  previewMode = false;
-  canvas = "";
-  ctx = "";
-  image = "";
-  frameIndex = 0;
-  frameCount = 0;
   frameRate = 24;
-  sampleImage = "";
   pause = false;
-  allSpritesArray = [];
-  spriteImages = [];
-  spritesIndex = 0;
   constructor(private spriteDataService:SpriteDataService){};
   ngOnInit(){
 
@@ -42,6 +31,25 @@ export class PreviewComponent implements OnInit {
       this.files.push(path.join(file.path,file.name));
     } );
 
+    this.img = document.createElement("img");
+    document.getElementById("previewWrapper").append(this.img);
+    let self = this;
+    let i = 0;
+    let interval = setInterval(()=>{
+        if(this.files[i]) {
+          self.img.src = this.files[i];
+          i++;
+        } else {
+          i = 0;
+        }
+    },1000/this.frameRate);
+  }
+
+
+
+
+/* this code is not currently in use */
+/*  getSpriteImageData(){
     let self = this;
     let image = "";
     this.message = "Processing the images...";
@@ -54,13 +62,14 @@ export class PreviewComponent implements OnInit {
     err => { console.log(err); },
     complete => {
         console.log("complete",this.allSpritesArray);
-        this.previewMode = true;
-        this.createCanvas();
-        this.createImages();
-        this.renderPreview();
+        //this.previewMode = true;
+        //this.createCanvas();
+        //this.createImages();
+        //this.renderPreview();
       }
     );
   }
+
 
   createImages(){
     for(let i = 0; i < this.allSpritesArray.length; i++){
@@ -108,4 +117,21 @@ export class PreviewComponent implements OnInit {
       if (this.allSpritesArray[this.spritesIndex]) this.renderPreview();
     }
   }
+  files = [];
+  message = "Click to generate preview";
+  spriteData:Object = {};
+  previewMode = false;
+  canvas = "";
+  ctx = "";
+  image = "";
+  frameIndex = 0;
+  frameCount = 0;
+  frameRate = 24;
+  sampleImage = "";
+  pause = false;
+  allSpritesArray = [];
+  spriteImages = [];
+  spritesIndex = 0;
+
+  */
 }
