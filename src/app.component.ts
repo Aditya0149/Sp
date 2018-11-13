@@ -16,16 +16,19 @@ var {ipcRenderer} = require('electron');
 @Component({
   selector: 'App',
   template:
-  `<div style="display:flex;justify-content:space-between;">
-    <div style="width:50%;">
-      <div (drop)="getFiles($event)" (dragover)="allowDrop($event)" class="file_list" *ngIf="displayFiles" >
+  `<div class="app_wrapper row">
+    <div class="col">
+      <div (drop)="getFiles($event)" (dragover)="allowDrop($event)" class="file_list" *ngIf="displayFiles">
         <div *ngIf="!fileArray.length">Upload Files Here</div>
-        <div *ngFor="let file of fileArray">{{ file.name }}</div>
+        <div *ngFor="let file of fileArray" >
+          {{ file.name }}
+        </div>
       </div>
       <Config *ngIf="!displayFiles" ></Config>
     </div>
-    <Preview style="border:1px solid;width:50%;" [previewFileArray]=fileArray></Preview>
+    <Preview class="col preview" [previewFileArray]=fileArray></Preview>
   </div>`,
+  styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
   @ViewChild(PreviewComponent)
@@ -46,6 +49,7 @@ export class AppComponent implements OnInit {
         files.forEach(file => {
           let fileData = path.parse(file);
           if (fileData.ext == "." + this.spriteDataService.spriteConfig.fileType) { // ignore if its directory
+
               this.zone.run( ()=> {
                 this.fileArray.push({name:fileData.name+fileData.ext,path:filesPath[0]});
             });
@@ -84,6 +88,10 @@ export class AppComponent implements OnInit {
 
   allowDrop(ev) {
     ev.preventDefault();
+  }
+
+  compressImages(_path){
+
   }
 
   writeImageData(destinationPath){
@@ -136,9 +144,9 @@ export class AppComponent implements OnInit {
         ip.sprite_index = index;
         ip.colorRect = {
           "width": Math.round( ip.width ),
-          "y": Math.round( ip.sprite_x ),
+          "y": 0,
           "height": Math.round( ip.height ),
-          "x": Math.round( ip.sprite_x )
+          "x": 0
         }
         outputJsonObject.frames.push(ip);
         outputJsonObject.animations[0].frames.push({frame : keyName});

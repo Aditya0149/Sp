@@ -9,13 +9,20 @@ var Pixelsmith = require('pixelsmith');
 @Component({
   selector: 'Preview',
   template:
-  `<div style="width:100%;min-height:800px;" (click)="generatePreivew($event)">
-    <div id="previewWrapper" >
+  `<div (click)="generatePreivew($event)">
+    <div id="previewWrapper" class="card" >
 
-      <!-- input [(ngModel)]="frameRate" / -->
+
+      <div class="card-body">
+        <a href="#" class="btn btn-primary">Play</a>
+        <a href="#" class="btn btn-primary">Pause</a>
+        <a href="#" class="btn btn-primary">Stop</a>
+        <input [(ngModel)]="frameRate">
+      </div>
     </div>
     <!-- button (click)="!pause">pause</button -->
-  </div>`
+  </div>`,
+  styleUrls: ['./app.component.css']
 })
 export class PreviewComponent implements OnInit {
   @Input() previewFileArray;
