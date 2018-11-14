@@ -13,6 +13,8 @@ const isDevMode = process.execPath.match(/[\\/]electron/);
 if (isDevMode) enableLiveReload();
 
 const createWindow = async () => {
+
+
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -80,16 +82,16 @@ app.on('activate', () => {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
 
-const fileAddedInfo = {
+let info = {
   type: 'info',
-  title: 'Files added',
-  message: "Files are added",
+  title: 'Info',
+  message: "",
   buttons: ['Ok']
 }
 
-ipcMain.on('open-information-dialog', (event) => {
-
-  dialog.showMessageBox(fileAddedInfo, (index) => {
+ipcMain.on('open-information-dialog', (event,msg) => {
+  info.message = msg;
+  dialog.showMessageBox(info, (index) => {
     event.sender.send('information-dialog-selection', index)
   })
 });

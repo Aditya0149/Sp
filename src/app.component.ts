@@ -1,5 +1,6 @@
 import { Component, OnInit, NgZone, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DomSanitizer } from '@angular/platform-browser';
 import { IpcService } from './ipc.service.ts';
 import { SpriteDataService } from './sprite-data.service.ts';
 import { PreviewComponent } from './preview.component.ts';
@@ -8,7 +9,7 @@ import { Subject } from 'rxjs';
 import { FormControl } from '@angular/forms';
 var Spritesmith = require('spritesmith');
 var fs = require("fs");
-var jsonFile = require("jsonfile");
+//var jsonFile = require("jsonfile");
 var path = require("path");
 var {ipcRenderer} = require('electron');
 
@@ -20,13 +21,14 @@ var {ipcRenderer} = require('electron');
     <div class="col">
       <div (drop)="getFiles($event)" (dragover)="allowDrop($event)" class="file_list" *ngIf="displayFiles">
         <div *ngIf="!fileArray.length">Upload Files Here</div>
-        <div *ngFor="let file of fileArray" >
-          {{ file.name }}
+        <div *ngFor="let file of fileArray; let i = index" [ngClass]="['image_' + i,'file_list_item','card']" [class.border-success]="previewComponent.previewIndex == i" (click)="selectedImageIndex=i">
+          <img class="card-img-top" [src]="sanitizer.bypassSecurityTrustUrl(file.fullpath)" [alt]="file.name"/>
+          <div class="card-body"><h5 class="card-title"></h5>{{file.name}}</div>
         </div>
       </div>
       <Config *ngIf="!displayFiles" ></Config>
     </div>
-    <Preview class="col preview" [previewFileArray]=fileArray></Preview>
+    <Preview class="col preview" [previewFileArray]=fileArray [selectedIndex]=selectedImageIndex ></Preview>
   </div>`,
   styleUrls: ['./app.component.css']
 })
@@ -39,25 +41,29 @@ export class AppComponent implements OnInit {
   allSpritesArray = [];
   files = [];
   displayFiles = true;
+  selectedImageIndex = 0;
   fileArrayObservable = new Subject<[]>();
   filesFetched = this.fileArrayObservable.asObservable();
 
-  constructor(private ipcService: IpcService, private zone:NgZone, private spriteDataService:SpriteDataService){}
+  constructor(private ipcService: IpcService, private zone:NgZone, private spriteDataService:SpriteDataService, public sanitizer: DomSanitizer){}
   ngOnInit(): void {
     this.ipcService.on('selected-directory', (event, filesPath) => {
       fs.readdir(filesPath[0], (err, files) => {
         files.forEach(file => {
           let fileData = path.parse(file);
           if (fileData.ext == "." + this.spriteDataService.spriteConfig.fileType) { // ignore if its directory
-
               this.zone.run( ()=> {
-                this.fileArray.push({name:fileData.name+fileData.ext,path:filesPath[0]});
+                this.fileArray.push({
+                  name:fileData.name+fileData.ext,
+                  path:filesPath[0],
+                  fullpath:path.join(filesPath[0],fileData.name+fileData.ext)
+                });
             });
           }
         });
 
       });
-      this.ipcService.send('open-information-dialog',event);
+      this.ipcService.send('open-information-dialog',"Files added");
     });
 
     this.ipcService.on('export-sprites', (event, destinationPath) => {
@@ -75,6 +81,9 @@ export class AppComponent implements OnInit {
 
   }
 
+  ngOnChanges(changes: SimpleChanges) {
+    console.log(this.previewComponent.previewIndex);
+  }
 
 
   getFiles(event):void{

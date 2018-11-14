@@ -8,9 +8,36 @@ body {
 .app_wrapper{
   display:flex;
   justify-content:space-between;
-  min-height: 600px;
+  min-height: 500px;
 }
 
 #previewWrapper{
-  min-height: 600px;
+  min-height: 500px;
+}
+
+#previewWrapper img {
+    width: 75%;
+    display: block;
+    margin: 5% auto;
+    cursor: pointer;
+}
+
+.file_list{
+  overflow-y: scroll;
+  max-height: 500px;
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.file_list_item{
+  width: 25%;
+  font-size: 12px;
+}
+.file_list_item img{
+  width: 100%;
+}
+.border-success{
+  border-width: 3px;
 }

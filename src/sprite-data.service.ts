@@ -12,7 +12,7 @@ var jsonFile = require("jsonfile");
   providedIn:'root'
 })
 export class SpriteDataService {
-  public spriteConfig:Configurations = {
+  public spriteConfig = {
     framerate : 24;
     layout : "left-right";
     numberOfImagesPerSprite : 10;

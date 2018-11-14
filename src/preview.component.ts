@@ -1,5 +1,6 @@
 import { Component, OnInit, NgZone, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { IpcService } from './ipc.service.ts';
 import { SpriteDataService } from './sprite-data.service.ts';
 var Pixelsmith = require('pixelsmith');
 var Spritesmith = require('spritesmith');
@@ -9,47 +10,59 @@ var Pixelsmith = require('pixelsmith');
 @Component({
   selector: 'Preview',
   template:
-  `<div (click)="generatePreivew($event)">
+  `<div>
     <div id="previewWrapper" class="card" >
-
-
-      <div class="card-body">
-        <a href="#" class="btn btn-primary">Play</a>
-        <a href="#" class="btn btn-primary">Pause</a>
-        <a href="#" class="btn btn-primary">Stop</a>
-        <input [(ngModel)]="frameRate">
-      </div>
+      <img (click)="generatePreivew($event)" id="preview_img" src="../images/play_btn.png" />
     </div>
-    <!-- button (click)="!pause">pause</button -->
   </div>`,
   styleUrls: ['./app.component.css']
 })
 export class PreviewComponent implements OnInit {
   @Input() previewFileArray;
+  @Input() selectedIndex;
   files = [];
-  frameRate = 24;
-  pause = false;
-  constructor(private spriteDataService:SpriteDataService){};
-  ngOnInit(){
+  const frameRate = 24;
+  isRunnuing = false;
+  const previewInterval = null;
+  previewIndex = 0;
 
+  constructor(private spriteDataService:SpriteDataService, private ipcService:IpcService){};
+  ngOnInit(){
+  }
+  ngOnChanges(changes:SimpleChanges){
+     for (let propName in changes) {
+       console.log(changes[propName]);
   }
   generatePreivew():void{
+    if (!this.previewFileArray.length) {
+      this.ipcService.send('open-information-dialog',"Please add files first");
+      return;
+    }
     this.previewFileArray.forEach( file => {
       this.files.push(path.join(file.path,file.name));
     } );
 
-    this.img = document.createElement("img");
-    document.getElementById("previewWrapper").append(this.img);
+    this.img = document.getElementById("preview_img");
+    //this.img = document.createElement("img");
+    //document.getElementById("previewWrapper").append(this.img);
     let self = this;
-    let i = 0;
-    let interval = setInterval(()=>{
-        if(this.files[i]) {
-          self.img.src = this.files[i];
-          i++;
-        } else {
-          i = 0;
-        }
-    },1000/this.frameRate);
+    if(!this.previewInterval) {
+      this.previewInterval = setInterval(()=>{
+          if(this.files[this.previewIndex]) {
+            self.img.src = this.files[this.previewIndex];
+            this.previewIndex++;
+          } else {
+            this.previewIndex = 0;
+          }
+      },1000/this.frameRate);
+    }
+
+    if(this.isRunnuing) { // preview running and clicked
+      clearInterval(this.previewInterval);
+      this.previewInterval = null;
+    }
+    this.isRunnuing = !this.isRunnuing;
+
   }
 
 

@@ -9,22 +9,22 @@ import { SpriteDataService } from './sprite-data.service.ts';
   selector: 'Config',
   template:
   `<div>
-    <label>
-      Frame rate:
       <form [formGroup]="configForm" (ngSubmit)="spriteDataService.spriteConfig = configForm.value">
-        <label>framerate</label><input type="text" formControlName="framerate"><br/>
-        <select formControlName="layout">
-          <option [ngValue]="" disabled>Select a layout</option>
-          <option *ngFor="let opt of spriteDataService.layoutArray" [ngValue]="opt">{{opt}}</option>
-        </select>
-        <br/>
-        <label>numberOfImagesPerSprite</label><input type="text" formControlName="numberOfImagesPerSprite"><br/>
-        <label>spacing</label><input type="text" formControlName="spacing"><br/>
-        <label>fileType</label><input type="text" formControlName="fileType"><br/>
-        <label>animationPrefix</label><input type="text" formControlName="animationPrefix"><br/>
+        <div class="form-group"><label class="form-label">Framerate</label><input class="form-control" type="text" formControlName="framerate"></div>
+        <div class="form-group">
+          <label class="form-label">Select a layout</label>
+          <select class="form-control" formControlName="layout">
+            <option [ngValue]="" disabled>Select a layout</option>
+            <option *ngFor="let opt of spriteDataService.layoutArray" [ngValue]="opt">{{opt}}</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Number Of Images Per Sprite</label><input class="form-control" type="text" formControlName="numberOfImagesPerSprite"></div>
+        <div class="form-group"><label class="form-label">Spacing</label><input class="form-control" type="text" formControlName="spacing"></div>
+        <div class="form-group"><label class="form-label">FileType</label><input class="form-control" type="text" formControlName="fileType"></div>
+        <div class="form-group"><label class="form-label">Animation Prefix</label><input class="form-control" type="text" formControlName="animationPrefix"></div>
+
         <button type="submit" >Apply</button>
       </form>
-    </label>
   </div>`,
 })
 export class ConfigComponent{
