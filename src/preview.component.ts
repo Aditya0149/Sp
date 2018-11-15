@@ -1,4 +1,4 @@
-import { Component, OnInit, NgZone, Input } from '@angular/core';
+import { Component, OnInit, NgZone, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IpcService } from './ipc.service.ts';
 import { SpriteDataService } from './sprite-data.service.ts';
@@ -12,28 +12,37 @@ var Pixelsmith = require('pixelsmith');
   template:
   `<div>
     <div id="previewWrapper" class="card" >
-      <img (click)="generatePreivew($event)" id="preview_img" src="../images/play_btn.png" />
+      <img (click)="generatePreview($event)" id="preview_img" src="../images/play_btn.png" />
     </div>
   </div>`,
   styleUrls: ['./app.component.css']
 })
 export class PreviewComponent implements OnInit {
   @Input() previewFileArray;
-  @Input() selectedIndex;
+  @Input() previewIndex;
+  @Output() previewIndexchange = new EventEmitter<number>();
   files = [];
   const frameRate = 24;
   isRunnuing = false;
   const previewInterval = null;
-  previewIndex = 0;
 
   constructor(private spriteDataService:SpriteDataService, private ipcService:IpcService){};
   ngOnInit(){
   }
-  ngOnChanges(changes:SimpleChanges){
-     for (let propName in changes) {
-       console.log(changes[propName]);
+  ngOnViewInit(){
+
   }
-  generatePreivew():void{
+  ngOnChanges(changes:SimpleChanges){
+    if(!this.isRunnuing && this.img !== undefined) {
+     Object.keys(changes).forEach( (key) => {
+       if(key == "previewIndex") {
+         let file = this.previewFileArray[this.previewIndex];
+         this.img.src = path.join(file.path,file.name);
+       }
+     });
+   }
+  }
+  generatePreview():void{
     if (!this.previewFileArray.length) {
       this.ipcService.send('open-information-dialog',"Please add files first");
       return;
@@ -43,17 +52,16 @@ export class PreviewComponent implements OnInit {
     } );
 
     this.img = document.getElementById("preview_img");
-    //this.img = document.createElement("img");
-    //document.getElementById("previewWrapper").append(this.img);
-    let self = this;
     if(!this.previewInterval) {
       this.previewInterval = setInterval(()=>{
           if(this.files[this.previewIndex]) {
-            self.img.src = this.files[this.previewIndex];
+            this.img.src = this.files[this.previewIndex];
             this.previewIndex++;
           } else {
             this.previewIndex = 0;
+            this.previewIndexchange.emit(this.previewIndex);
           }
+
       },1000/this.frameRate);
     }
 
