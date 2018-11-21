@@ -1,8 +1,10 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
-import { enableLiveReload } from 'electron-compile';
+import { enableLiveReload , addBypassChecker} from 'electron-compile';
 const ProgressBar = require('electron-progressbar');
 var ipc = require('ipc');
 
+
+addBypassChecker((filePath) => { return filePath.indexOf(app.getAppPath()) === -1 && (/.jpg/.test(filePath) || /.ms/.test(filePath) || /.png/.test(filePath)); });
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -22,7 +24,10 @@ const createWindow = async () => {
     minWidth: 800,
     minHeight: 600,
     titleBarStyle: 'hidden',
-    show:false
+    show:false,
+    "webPreferences":{
+      "webSecurity":false
+    }
   });
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu)
