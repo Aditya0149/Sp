@@ -57,3 +57,7 @@ body {
 .border-success{
   border-width: 3px;
 }
+#output img {
+  width: auto;
+  display: inline-flex;
+}

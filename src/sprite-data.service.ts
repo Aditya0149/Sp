@@ -33,7 +33,6 @@ export class SpriteDataService {
 
   public getSpriteData(filesArray:Object):Observable<Object> {
     if(!this.isProgressBarOpen) {
-      console.log("Applying data : ",this.spriteConfig);
       this.ipcService.send("open-progress-bar",filesArray.length/this.spriteConfig.numberOfImagesPerSprite);
       this.isProgressBarOpen = true;
     }
