@@ -29,6 +29,7 @@ var {ipcRenderer} = require('electron');
       <Config *ngIf="!displayFiles" ></Config>
     </div>
     <Preview class="col preview" [previewFileArray]=fileArray [(previewIndex)]=selectedIndex ></Preview>
+    <div id='output'></div>
   </div>`,
   styleUrls: ['./app.component.css']
 })
@@ -97,8 +98,55 @@ export class AppComponent implements OnInit {
     ev.preventDefault();
   }
 
-  compressImages(_path){
+  encode (input) {
+    var keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+    var output = "";
+    var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+    var i = 0;
 
+    while (i < input.length) {
+        chr1 = input[i++];
+        chr2 = i < input.length ? input[i++] : Number.NaN; // Not sure if the index
+        chr3 = i < input.length ? input[i++] : Number.NaN; // checks are needed here
+
+        enc1 = chr1 >> 2;
+        enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+        enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+        enc4 = chr3 & 63;
+
+        if (isNaN(chr2)) {
+            enc3 = enc4 = 64;
+        } else if (isNaN(chr3)) {
+            enc4 = 64;
+        }
+        output += keyStr.charAt(enc1) + keyStr.charAt(enc2) +
+                  keyStr.charAt(enc3) + keyStr.charAt(enc4);
+    }
+    return output;
+}
+
+  resizeBase64Img(data) {
+    var img = new Image();
+
+    img.onload = function () {
+
+      // step 1 - resize to 50%
+      var oc = document.createElement('canvas'),
+          octx = oc.getContext('2d');
+
+      oc.width = img.width * 0.5;
+      oc.height = img.height * 0.5;
+      octx.drawImage(img, 0, 0, oc.width, oc.height);
+
+      // step 2
+      octx.drawImage(oc, 0, 0, oc.width * 0.5, oc.height * 0.5);
+
+      // step 3, resize to final size
+      ctx.drawImage(oc, 0, 0, oc.width * 0.5, oc.height * 0.5,
+      0, 0, canvas.width, canvas.height);
+    }
+    img.src = "data:image/png;base64," + this.encode(data);
+    return img;
   }
 
   writeImageData(destinationPath){
@@ -107,14 +155,16 @@ export class AppComponent implements OnInit {
     } );
     this.spriteDataService.getSpriteData(this.files);
     this.spriteDataService.spriteDataObservable.subscribe(data => {
-      console.log(data);
       this.allSpritesArray.push(data);
     },
     err => { console.log(err); },
     complete => {
-        console.log("complete",this.allSpritesArray);
         let filepathWithPrefix = path.join(destinationPath,this.spriteDataService.spriteConfig.animationPrefix);
         this.allSpritesArray.forEach( ( spriteData, index ) => {
+          //this.encode(spriteData.image);
+          //let img = document.createElement("img");
+          //img.src = "data:image/png;base64," + this.encode(spriteData.image);
+          document.getElementById("output").appendChild(this.resizeBase64Img(spriteData.image));
           fs.writeFileSync(filepathWithPrefix + "_" + index + ".png", spriteData.image, 'binary', function(err){
                 if (err) throw err
             });
