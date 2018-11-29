@@ -11,7 +11,7 @@ var Pixelsmith = require('pixelsmith');
   selector: 'Preview',
   template:
   `<div>
-    <div id="previewWrapper" class="card" >
+    <div id="previewWrapper" >
       <img (click)="generatePreview($event)" id="preview_img" src="../images/play_btn.png" />
     </div>
   </div>`,

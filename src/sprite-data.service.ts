@@ -15,7 +15,7 @@ export class SpriteDataService {
   public spriteConfig = {
     framerate : 24;
     layout : "left-right";
-    numberOfImagesPerSprite : 10;
+    maxArea : 3000000;
     spacing : 1;
     fileType : "png";
     animationPrefix : "anim";
@@ -27,17 +27,21 @@ export class SpriteDataService {
   spriteDataObservable = this.spriteData.asObservable();
   filesArray = [];
   imageSize = {};
-
+  completeCalled = false;
+  areaPerImage = 0;
+  numberOfImagesPerSprite = 10;
 
   constructor(private ipcService:IpcService){};
 
-  public getSpriteData(filesArray:Object):Observable<Object> {
+  public getSpriteData(filesArray:Object,areaPerImage):Observable<Object> {
     if(!this.isProgressBarOpen) {
-      this.ipcService.send("open-progress-bar",filesArray.length/this.spriteConfig.numberOfImagesPerSprite);
+      this.numberOfImagesPerSprite = Math.floor(this.spriteConfig.maxArea/areaPerImage);
+      this.ipcService.send("open-progress-bar",filesArray.length/this.numberOfImagesPerSprite);
       this.isProgressBarOpen = true;
     }
     let self = this;
-    let files = filesArray.splice(0,this.spriteConfig.numberOfImagesPerSprite - 1);
+
+    let files = filesArray.splice(0,this.numberOfImagesPerSprite);
 
     Spritesmith.run({ src: files, algorithm: this.spriteConfig.layout, algorithmOpts: {sort: false},padding: this.spriteConfig.spacing }, function handleResult (err, result) {
       if (err) console.log("run error ",err);
@@ -45,11 +49,13 @@ export class SpriteDataService {
 
       self.progress = self.progress + 1;
       self.ipcService.send("progress",self.progress);
-      if( filesArray.length ) self.getSpriteData(filesArray);
+      if( filesArray.length ) self.getSpriteData(filesArray,areaPerImage);
       else {
-        self.spriteData.complete();
-        self.isProgressBarOpen = false;
-        self.progress = 0;
+          self.spriteData.complete();
+          self.isProgressBarOpen = false;
+          self.progress = 0;
+          self.spriteData = new Subject<Object>();
+          self.spriteDataObservable = self.spriteData.asObservable();
       }
     });
   }
@@ -93,20 +99,18 @@ export class SpriteDataService {
     }
   }
 
-
   setImageSize(imgSrc) {
-    console.log(imgSrc);
-       var imgLoader = new Image(); // create a new image object
-       let self = this;
+      console.log(imgSrc);
+      var imgLoader = new Image(); // create a new image object
+      let self = this;
+      let areaPerImage = 0;
       imgLoader.onload = function() { // assign onload handler
-          self.imageSize.height = imgLoader.height;
-          self.imageSize.width = imgLoader.width;
-          console.log('Image size: ',self.imageSize);
+          areaPerImage = imgLoader.height * imgLoader.width;
+          console.log('Image size: ',areaPerImage);
+          self.areaPerImage = areaPerImage;
       }
       imgLoader.src = imgSrc;
-      this.compressImages(imgSrc);
-
-
   }
+
 
 }

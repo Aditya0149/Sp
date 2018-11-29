@@ -20,9 +20,9 @@ const createWindow = async () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 1200,
-    height: 800,
-    minWidth: 800,
-    minHeight: 600,
+    height: 710,
+    minWidth: 1200,
+    minHeight: 710,
     titleBarStyle: 'hidden',
     show:false,
     "webPreferences":{
@@ -129,7 +129,6 @@ ipcMain.on('open-progress-bar', (event,maximumValue) => {
 
 
 
-
 function handleCrash(msg){
   let crashAndHangOptions = {
     type:"info",
@@ -187,21 +186,6 @@ let template = [
     label: 'Configurations',
     submenu: [
       {
-        label:"Export options",
-        accelerator: (() => {
-          if (process.platform === 'darwin') {
-            return 'Command+E'
-          } else {
-            return 'Ctrl+E'
-          }
-        })(),
-        click: (item, focusedWindow) => {
-          if (focusedWindow) {
-            mainWindow.webContents.send('toggle-display','Export options');
-          }
-        }
-      },
-      {
         label:"File list",
         accelerator: (() => {
           if (process.platform === 'darwin') {
@@ -213,6 +197,21 @@ let template = [
         click: (item, focusedWindow) => {
           if (focusedWindow) {
             mainWindow.webContents.send('toggle-display','File list');
+          }
+        }
+      },
+      {
+        label:"Export options",
+        accelerator: (() => {
+          if (process.platform === 'darwin') {
+            return 'Command+E'
+          } else {
+            return 'Ctrl+E'
+          }
+        })(),
+        click: (item, focusedWindow) => {
+          if (focusedWindow) {
+            mainWindow.webContents.send('toggle-display','Export options');
           }
         }
       }

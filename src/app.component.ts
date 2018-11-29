@@ -12,24 +12,37 @@ var fs = require("fs");
 var jsonFile = require("jsonfile");
 var path = require("path");
 var {ipcRenderer} = require('electron');
-
+const {shell} = require('electron')
+const os = require('os')
 
 @Component({
   selector: 'App',
   template:
   `<div class="app_wrapper row">
-    <div class="col">
-      <div (drop)="getFiles($event)" (dragover)="allowDrop($event)" class="file_list" *ngIf="displayFiles">
-        <div *ngIf="!fileArray.length">Upload Files Here</div>
+    <div>
+
+      <div (drop)="getFilesByDrop($event)" (dragover)="allowDrop($event)" class="file_list" *ngIf="currentDisplay == 'File list'">
+        <div *ngIf="!fileArray.length" class="drag_files"><i class="fas fa-file"></i>&nbsp;Drag Files Here</div>
         <div *ngFor="let file of fileArray; let i = index" [ngClass]="['image_' + i,'file_list_item','card']" [class.border-success]="previewComponent.previewIndex == i" (click)="selectedIndex=i">
           <img class="card-img-top" [src]="sanitizer.bypassSecurityTrustUrl(file.fullpath)" [alt]="file.name"/>
           <div class="card-body"><h5 class="card-title"></h5>{{file.name}}</div>
         </div>
       </div>
-      <Config *ngIf="!displayFiles" ></Config>
+
+      <Config *ngIf="currentDisplay == 'Export options'" class="border_box">
+        <div class="form-group"><input [(ngModel)]="scaleFactor" class="form-control" type="text"><br/><button (click)="resizeImages()">{{ useResizedImages ? 'Remove scale factor' : 'Apply scale factor'}}</button></div>
+      </Config>
     </div>
-    <Preview class="col preview" [previewFileArray]=fileArray [(previewIndex)]=selectedIndex ></Preview>
-    <div id='output'><button (click)="resizeImages()">Resize Images</button></div>
+
+    <Preview class="preview" [previewFileArray]=fileArray [(previewIndex)]=selectedIndex ></Preview>
+    <div class="downloads" (click)="openDestinationFolder()" *ngIf="showDownlaods">
+      click here to see created files.
+    </div>
+    <div class="overlay" *ngIf="showOverlay" >
+      <div class="fa-3x">
+      <i class="fas fa-spinner fa-spin"></i>
+      </div>
+    </div>
   </div>`,
   styleUrls: ['./app.component.css']
 })
@@ -40,32 +53,21 @@ export class AppComponent implements OnInit {
   public fileArray = [];
   spriteArray = []; // ?
   allSpritesArray = [];
+  outputSprites = [];
   useResizedImages = false;
   files = [];
-  displayFiles = true;
+  currentDisplay = "File list";
   fileArrayObservable = new Subject<[]>();
   filesFetched = this.fileArrayObservable.asObservable();
   selectedIndex = 0;
+  destinationPath = "";
+  scaleFactor = 0.5;
+  showDownlaods = false;
+  showOverlay = false;
   constructor(private ipcService: IpcService, private zone:NgZone, private spriteDataService:SpriteDataService, public sanitizer: DomSanitizer){}
   ngOnInit(): void {
     this.ipcService.on('selected-directory', (event, filesPath) => {
-      fs.readdir(filesPath[0], (err, files) => {
-        files.forEach(file => {
-          let fileData = path.parse(file);
-          if (fileData.ext == "." + this.spriteDataService.spriteConfig.fileType) { // ignore if its directory
-              this.zone.run( ()=> {
-                this.fileArray.push({
-                  name:fileData.name+fileData.ext,
-                  path:filesPath[0],
-                  fullpath:path.join(filesPath[0],fileData.name+fileData.ext)
-                });
-            });
-
-          }
-        });
-
-      });
-      this.ipcService.send('open-information-dialog',"Files added");
+      this.getFilesByPath(filesPath);
     });
 
     this.ipcService.on('export-sprites', (event, destinationPath) => {
@@ -75,16 +77,40 @@ export class AppComponent implements OnInit {
 
     this.ipcService.on('toggle-display', (event,data) => {
       this.zone.run( ()=> {
-        if (data == "Export options") this.displayFiles = false;
-        else this.displayFiles = true;
+        this.currentDisplay = data;
       })
     });
 
 
   }
 
+
+  getFilesByPath(filesPath){
+    fs.readdir(filesPath[0], (err, files) => {
+      files.forEach(file => {
+        let fileData = path.parse(file);
+        if (fileData.ext == "." + this.spriteDataService.spriteConfig.fileType) { // ignore if its directory
+            this.zone.run( ()=> {
+              this.fileArray.push({
+                name:fileData.name+fileData.ext,
+                path:filesPath[0],
+                fullpath:path.join(filesPath[0],fileData.name+fileData.ext)
+              });
+          });
+        }
+      });
+
+    });
+    this.ipcService.send('open-information-dialog',"Files added");
+  }
+
   resizeImages() {
-    this.useResizedImages = true;
+    if(!this.fileArray.length) {
+      alert("Please add files first.");
+      return 0;
+    }
+    this.useResizedImages = !this.useResizedImages;
+    this.showOverlay = true;
     let self = this;
     let dirname = "";
     this.fileArray.forEach((image,index)=>{
@@ -93,33 +119,39 @@ export class AppComponent implements OnInit {
           octx = oc.getContext('2d');
       let self = this;
       img.onload = function () {
-        oc.width = img.width * 0.5;
-        oc.height = img.height * 0.5;
+        oc.width = img.width * self.scaleFactor;
+        oc.height = img.height * self.scaleFactor;
         octx.drawImage(img, 0, 0, oc.width, oc.height);
         let base64Data = oc.toDataURL('image/png').replace(/^data:image\/png;base64,/, "");
-        dirname = path.join(image.path,'compressed/');
+        dirname = path.join(image.path,'scaled/');
         if (!fs.existsSync(dirname)) fs.mkdirSync(dirname);
-        self.fileArray[index].path = dirname;
         fs.writeFileSync( dirname + image.name, base64Data , 'base64', function(err){
             if (err) throw err
         });
-
+        if(self.fileArray.length - 1 == index) {
+          self.zone.run( ()=> {
+            self.showOverlay = false;
+          });
+        }
       }
       img.src = path.join(image.path,image.name);
     });
-    alert("images resized");
   }
 
   ngAfterViewChecked() {
     if(document.getElementsByClassName("border-success")[0] && this.previewComponent.isRunnuing) document.getElementsByClassName("border-success")[0].scrollIntoView(false);
   }
 
-  getFiles(event):void{
+  getFilesByDrop(event):void{
     event.preventDefault();
     for (let f of event.dataTransfer.files) {
-        this.fileArray.push({name:f.name,path:f.path.replace(f.name,"")});
+        this.fileArray.push({
+          name:f.name,
+          path:f.path.replace(f.name,""),
+          fullpath:f.path
+        });
     }
-    this.ipcService.send('open-information-dialog',event);
+    this.ipcService.send('open-information-dialog',"Files added");
   }
 
 
@@ -128,10 +160,24 @@ export class AppComponent implements OnInit {
   }
 
   writeImageData(destinationPath){
+    this.zone.run( ()=> { this.showOverlay = true; });
+    var sourcePath = "";
     this.fileArray.forEach( file => {
-      this.files.push(path.join(file.path,file.name));
+      if (this.useResizedImages) sourcePath = path.join(file.path,'scaled/',file.name);
+      else sourcePath  = path.join(file.path,file.name);
+      this.files.push(sourcePath);
     } );
-    this.spriteDataService.getSpriteData(this.files);
+
+    var imgLoader = new Image(); // create a new image object
+    let self = this;
+    let areaPerImage = 0;
+    imgLoader.onload = function() { // assign onload handler
+        areaPerImage = imgLoader.height * imgLoader.width;
+        self.spriteDataService.getSpriteData(self.files,areaPerImage);
+    }
+    imgLoader.src = this.files[0];
+
+    //this.spriteDataService.getSpriteData(this.files);
     this.spriteDataService.spriteDataObservable.subscribe(data => {
       this.allSpritesArray.push(data);
     },
@@ -139,14 +185,26 @@ export class AppComponent implements OnInit {
     complete => {
         let filepathWithPrefix = path.join(destinationPath,this.spriteDataService.spriteConfig.animationPrefix);
         this.allSpritesArray.forEach( ( spriteData, index ) => {
+          console.log(spriteData.properties);
           fs.writeFileSync(filepathWithPrefix + "_" + index + ".png", spriteData.image, 'binary', function(err){
                 if (err) throw err
             });
         });
         jsonFile.writeFileSync(path.join(destinationPath,this.spriteDataService.spriteConfig.animationPrefix)+".json",this.getHWJsonFormat());
         alert("Sprite images and json file exported");
+        this.zone.run( ()=> {
+          this.destinationPath = destinationPath;
+          this.showDownlaods = true;
+          this.showOverlay = false;
+        });
+        this.allSpritesArray = [];
       }
     );
+  }
+
+  openDestinationFolder(){
+    shell.openItem(this.destinationPath);
+    this.showDownlaods = false;
   }
 
   getHWJsonFormat():Object{
@@ -189,19 +247,20 @@ export class AppComponent implements OnInit {
 
     outputJsonObject.name = prefix;
     outputJsonObject.info = {
-      "calc_type": "horizontal",
+      "calc_type": this.spriteDataService.spriteConfig.layout,
       "min_height": 0,
-      "max_area": 2000000,
+      "max_area": this.spriteDataService.spriteConfig.maxArea,
       "max_height": -1,
       "sort": "name",
       "max_width": -1,
       "min_width": 0,
-      "spacing": 1
+      "spacing": this.spriteDataService.spriteConfig.spacing
     };
     outputJsonObject.animations[0].fps = frameRate;
     outputJsonObject.animations[0].name = prefix;
     return outputJsonObject;
   }
+
 
 
 }
