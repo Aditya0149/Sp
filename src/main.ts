@@ -1,9 +1,8 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
 import { enableLiveReload , addBypassChecker} from 'electron-compile';
 const ProgressBar = require('electron-progressbar');
-var ipc = require('ipc');
-
-
+const ipc = require('ipc');
+const path = require("path");
 addBypassChecker((filePath) => { return filePath.indexOf(app.getAppPath()) === -1 && (/.jpg/.test(filePath) || /.ms/.test(filePath) || /.png/.test(filePath)); });
 
 // Keep a global reference of the window object, if you don't, the window will
@@ -22,17 +21,15 @@ const createWindow = async () => {
     width: 1200,
     height: 710,
     minWidth: 1200,
-    minHeight: 710,
+    minHeight: 730,
     titleBarStyle: 'hidden',
     show:false,
     "webPreferences":{
       "webSecurity":false
     }
   });
-  const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu)
   // and load the index.html of the app.
-  mainWindow.loadURL(`file://${__dirname}/index.html`);
+  mainWindow.loadURL(path.join("file://",`${__dirname}`,"/index.html"));
 
   // Open the DevTools.
   if (isDevMode) {
@@ -101,6 +98,18 @@ ipcMain.on('open-information-dialog', (event,msg) => {
   })
 });
 
+ipcMain.on('disable-menuitem', (event,menuitem) => {
+  menu.getMenuItemById(menuitem).enabled = false;
+});
+
+ipcMain.on('enable-menuitem', (event,menuitem) => {
+  menu.getMenuItemById(menuitem).enabled = true;
+});
+
+ipcMain.on('hide-menuitem', (event,menuitem) => {
+  menu.getMenuItemById(menuitem).hide = true;
+});
+
 ipcMain.on('open-progress-bar', (event,maximumValue) => {
   let progressBar = new ProgressBar({
     indeterminate: false,
@@ -109,10 +118,10 @@ ipcMain.on('open-progress-bar', (event,maximumValue) => {
     maxValue: maximumValue
   });
   progressBar
-  .on('completed', function() {
+  .on('completed', () => {
     progressBar.detail = 'Images processed...';
   })
-  .on('aborted', function() {
+  .on('aborted', () => {
     progressBar.detail = 'Images processed...';
   })
   .on('progress', (value) => {
@@ -129,7 +138,7 @@ ipcMain.on('open-progress-bar', (event,maximumValue) => {
 
 
 
-function handleCrash(msg){
+let handleCrash = (msg) => {
   let crashAndHangOptions = {
     type:"info",
     title:"Something went wrong",
@@ -147,6 +156,7 @@ let template = [
     label:"Animation",
     submenu: [{
         label:"Create new",
+        id:"create_new",
         accelerator: (() => {
           if (process.platform === 'darwin') {
             return 'Command+R'
@@ -155,11 +165,20 @@ let template = [
           }
         })(),
         click: (item,focusedWindow) => {
-          focusedWindow.reload()
+          const options = {
+            type: 'info',
+            title: 'Create new animation',
+            message: "Creating new animation will remove all present data. Do you want to continue ?",
+            buttons: ['Yes', 'No']
+          }
+          dialog.showMessageBox(options, (index) => {
+            if (index === 0) focusedWindow.reload();
+          })
         }
       },
       {
       label:"Add images",
+      id:"add_images",
       accelerator: (() => {
         if (process.platform === 'darwin') {
           return 'Command+O'
@@ -187,6 +206,7 @@ let template = [
     submenu: [
       {
         label:"File list",
+        id:"file_list",
         accelerator: (() => {
           if (process.platform === 'darwin') {
             return 'Command+L'
@@ -202,6 +222,7 @@ let template = [
       },
       {
         label:"Export options",
+        id:"export_options",
         accelerator: (() => {
           if (process.platform === 'darwin') {
             return 'Command+E'
@@ -223,6 +244,7 @@ let template = [
     submenu: [
       {
         label:"Export Sprite sheets and JSON file",
+        id:"export",
         accelerator: (() => {
           if (process.platform === 'darwin') {
             return 'Command+I'
@@ -262,3 +284,7 @@ let template = [
   }
 
 ]
+
+
+const menu = Menu.buildFromTemplate(template);
+Menu.setApplicationMenu(menu);
