@@ -1,16 +1,18 @@
 <div class="app_wrapper row">
   <div>
-
     <div (drop)="getFilesByDrop($event)" (dragover)="allowDrop($event)" class="file_list" *ngIf="currentDisplay == 'File list'">
       <div *ngIf="!fileArray.length" class="drag_files"><i class="fas fa-file"></i>&nbsp;Drag Files Here</div>
-      <div *ngFor="let file of fileArray; let i = index" [ngClass]="['image_' + i,'file_list_item','card']" [class.border-success]="previewComponent.previewIndex == i" (click)="selectedIndex=i">
+      <div *ngFor="let file of fileArray; let i = index" [ngClass]="['image_' + i,'file_list_item','card']" [class.border-success]="previewComponent.previewIndex == i" (click)="selectedIndex=i" (dragover)="allowDrop($event)">
         <img class="card-img-top" [src]="sanitizer.bypassSecurityTrustUrl(file.fullpath)" [alt]="file.name"/>
         <div class="card-body"><h5 class="card-title"></h5>{{file.name}}</div>
       </div>
     </div>
 
     <config *ngIf="currentDisplay == 'Export options'" class="border_box config">
-      <div class="form-group"><input [(ngModel)]="scaleFactor" class="form-control" type="text"><br/><button class="mybtn scale_btn" (click)="resizeImages()">{{ useResizedImages ? 'Remove scale factor' : 'Apply scale factor'}}</button></div>
+      <div class="form-group scaleFactor-form-group">
+        <input [(ngModel)]="scaleFactor" class="form-control" type="number" [min]="0.1" [max]="1" >
+        <button class="mybtn scale_btn" (click)="resizeImages()">{{ useResizedImages ? 'Remove scale factor' : 'Apply scale factor'}}</button>
+      </div>
     </config>
   </div>
 

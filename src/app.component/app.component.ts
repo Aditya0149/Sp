@@ -1,5 +1,5 @@
 // angular modules
-import { Component, OnInit, NgZone, ViewChild } from '@angular/core';
+import { Component, Directive, OnInit, NgZone, ViewChild, ElementRef, HostListener  } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
@@ -28,7 +28,7 @@ const os = require('os');
 })
 export class AppComponent implements OnInit {
   @ViewChild(PreviewComponent)
-  private previewComponent:PreviewComponent;
+  private previewComponent;
   public fileArray = [];
   private allSpritesArray = [];
   private useResizedImages = false;
@@ -43,7 +43,7 @@ export class AppComponent implements OnInit {
 
   constructor(private ipcService: IpcService, private zone:NgZone, private spriteDataService:SpriteDataService, public sanitizer: DomSanitizer){}
 
-  ngOnInit(): void {
+  ngOnInit() {
     this.ipcService.on('selected-directory', (event, filesPath) => {
       this.getFilesByPath(filesPath);
     });
@@ -64,7 +64,8 @@ export class AppComponent implements OnInit {
 
   private getFilesByPath(filesPath){ // called after adding images by menu
     fs.readdir(filesPath[0], (err, files) => {
-      files.forEach(file => {
+      files.forEach( ( file, index ) => {
+        console.log(index);
         let fileData = path.parse(file);
         if (fileData.ext == "." + this.spriteDataService.spriteConfig.fileType) { // ignore if file format is not supported
             this.zone.run( ()=> {
@@ -80,7 +81,7 @@ export class AppComponent implements OnInit {
     this.ipcService.send("enable-menuitem","export");
   }
 
-  public getFilesByDrop(event):void{ // called after adding images by drag and drop
+  public getFilesByDrop(event) { // called after adding images by drag and drop
     event.preventDefault();
     for (let f of event.dataTransfer.files) {
         this.fileArray.push({
@@ -90,11 +91,59 @@ export class AppComponent implements OnInit {
         });
     }
     this.ipcService.send("enable-menuitem","export");
-    this.ipcService.send('open-information-dialog',"Files added");
   }
 
   public allowDrop(ev) { // to support drag and drop
     ev.preventDefault();
+  }
+
+  private getHWJsonFormatedObject():Object{
+    let outputJsonObject = {};
+    outputJsonObject.frames = [];
+    outputJsonObject.sprite_sheets = [];
+    outputJsonObject.animations = [{}];
+    outputJsonObject.animations[0].frames = [];
+    let prefix = this.spriteDataService.spriteConfig.animationPrefix;
+    let frameRate = this.spriteDataService.spriteConfig.framerate;
+    this.allSpritesArray.forEach( ( spriteData, index ) => {
+      let coordinates = spriteData.coordinates;
+      let properties = spriteData.properties;
+      let framesArray = [];
+      Object.keys(coordinates).forEach( key => {
+        let ip = coordinates[key];
+        let keyName = ''+key;
+        ip.name = key;
+        ip.sprite_x = ip.x;
+        delete(ip.x);
+        ip.sprite_y = ip.y;
+        delete(ip.y);
+        ip.sprite_index = index;
+        ip.colorRect = {
+          "width": Math.round( ip.width ),
+          "y": 0,
+          "height": Math.round( ip.height ),
+          "x": 0
+        }
+        outputJsonObject.frames.push(ip);
+        outputJsonObject.animations[0].frames.push({frame : keyName});
+      });
+      outputJsonObject.sprite_sheets.push(properties);
+    });
+
+    outputJsonObject.name = prefix;
+    outputJsonObject.info = {
+      "calc_type": this.spriteDataService.spriteConfig.layout,
+      "min_height": 0,
+      "max_area": this.spriteDataService.spriteConfig.maxArea,
+      "max_height": -1,
+      "sort": "name",
+      "max_width": -1,
+      "min_width": 0,
+      "spacing": this.spriteDataService.spriteConfig.spacing
+    };
+    outputJsonObject.animations[0].fps = frameRate;
+    outputJsonObject.animations[0].name = prefix;
+    return outputJsonObject;
   }
 
   private writeImageData(destinationPath){ // called after clicked on export menu item
@@ -148,60 +197,21 @@ export class AppComponent implements OnInit {
     this.showDownlaods = false;
   }
 
-  private getHWJsonFormatedObject():Object{
-    let outputJsonObject = {};
-    outputJsonObject.frames = [];
-    outputJsonObject.sprite_sheets = [];
-    outputJsonObject.animations = [{}];
-    outputJsonObject.animations[0].frames = [];
-    let prefix = this.spriteDataService.spriteConfig.animationPrefix;
-    let frameRate = this.spriteDataService.spriteConfig.framerate;
-    this.allSpritesArray.forEach( ( spriteData, index ) => {
-      let coordinates = spriteData.coordinates;
-      let properties = spriteData.properties;
-      let framesArray = [];
-      Object.keys(coordinates).forEach( key => {
-        let ip = coordinates[key];
-        let keyName = ''+key;
-        ip.name = key;
-        ip.sprite_x = ip.x;
-        delete(ip.x);
-        ip.sprite_y = ip.y;
-        delete(ip.y);
-        ip.sprite_index = index;
-        ip.colorRect = {
-          "width": Math.round( ip.width ),
-          "y": 0,
-          "height": Math.round( ip.height ),
-          "x": 0
-        }
-        outputJsonObject.frames.push(ip);
-        outputJsonObject.animations[0].frames.push({frame : keyName});
-      });
-      outputJsonObject.sprite_sheets.push(properties);
-    });
-
-    outputJsonObject.name = prefix;
-    outputJsonObject.info = {
-      "calc_type": this.spriteDataService.spriteConfig.layout,
-      "min_height": 0,
-      "max_area": this.spriteDataService.spriteConfig.maxArea,
-      "max_height": -1,
-      "sort": "name",
-      "max_width": -1,
-      "min_width": 0,
-      "spacing": this.spriteDataService.spriteConfig.spacing
-    };
-    outputJsonObject.animations[0].fps = frameRate;
-    outputJsonObject.animations[0].name = prefix;
-    return outputJsonObject;
-  }
-
   private resizeImages() {
+
     if(!this.fileArray.length) {
       alert("Please add files first.");
       return 0;
     }
+    if(this.scaleFactor <= 0) {
+      alert("Please enter scale factor greater than 0");
+      return 0;
+    }
+    if(this.scaleFactor > 1) {
+      alert("Please enter scale factor less than 1");
+      return 0;
+    }
+
     this.useResizedImages = !this.useResizedImages;
     this.showOverlay = true;
     let dirname = "";
@@ -229,4 +239,14 @@ export class AppComponent implements OnInit {
     });
   }
 
+}
+
+@Directive({
+  selector: '[Movable]'
+})
+export class MovableDirective {
+  constructor(private el: ElementRef) { }
+  @HostListener('drop',['$event']) public onDrop(event) {
+    console.log(this.el.nativeElement.clientWidth, event.dataTransfer.files);
+  }
 }

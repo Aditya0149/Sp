@@ -29,6 +29,7 @@ export class ConfigComponent{
   public onSubmit(){
     this.spriteDataService.spriteConfig = this.configForm.value;
     alert("Data applied");
+    this.spriteDataService.message.next("update preview");
   }
 
 }

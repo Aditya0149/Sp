@@ -82,6 +82,13 @@
   font-size: 11px;
   align-self: flex-start;
   max-height: 100%;
+  position: relative;
+}
+.movable {
+  position: absolute;
+  width: 10px;
+  background: #0f0;
+  height: 100%;
 }
 .file_list_item img{
   width: 100%;
@@ -170,13 +177,71 @@ button[disabled] {
   display: inline-block;
   width: 48%;
 }
+
 .mybtn {
-  width: 48%;
+  width: 50%;
   cursor: pointer;
   height: 40px;
   text-transform: uppercase;
   box-shadow: none;
+  display: block;
+  margin: 2% auto;
 }
 .scale_btn {
   width: 100%;
+}
+.form-group.scaleFactor-form-group {
+    width: 100%;
+}
+
+.form-group.scaleFactor-form-group input, .form-group.scaleFactor-form-group button {
+    width: 48%;
+    display: inline-block;;
+}
+
+.form-group.animation-form-group {
+  width: 96%;
+  display: block;
+}
+.config {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+
+
+#previewWrapper {
+    position: relative;
+}
+
+#previewWrapper .tooltiptext {
+    visibility: hidden;
+    width: 120px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    position: absolute;
+    z-index: 1;
+    bottom: 150%;
+    left: 50%;
+    margin-left: -60px;
+}
+
+#previewWrapper .tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: black transparent transparent transparent;
+}
+
+#previewWrapper:hover .tooltiptext {
+    visibility: visible;
 }

@@ -15,7 +15,7 @@ const path = require("path");
   selector: 'preview',
   template:
   `<div>
-    <div id="previewWrapper" >
+    <div id="previewWrapper" data-toggle="tooltip" title="{{this.isRunnuing ? 'pause' : 'play'}}" >
       <img (click)="generatePreview($event)" id="preview_img" src="../images/play_btn.png" />
     </div>
   </div>`,
@@ -26,11 +26,24 @@ export class PreviewComponent implements OnInit {
   @Input() private previewIndex;
   @Input() private changePreview;
   @Output() private previewIndexchange = new EventEmitter<number>();
-  const frameRate = 24;
+  private frameRate = 24;
   private isRunnuing = false;
   private previewInterval = null;
 
   constructor(private spriteDataService:SpriteDataService, private ipcService:IpcService, private _differs: IterableDiffers){};
+
+  ngOnInit() {
+    this.spriteDataService.message.subscribe((msg)=>{
+        if(msg == "update preview"){
+          clearInterval(this.previewInterval);
+          this.previewInterval = null;
+          this.previewIndex = 0;
+          this.previewIndexchange.emit(this.previewIndex);
+          this.frameRate = this.spriteDataService.spriteConfig.framerate;
+          this.isRunnuing = false;
+        }
+    });
+  }
 
   ngOnChanges(changes:SimpleChanges){
     if(!this.isRunnuing && this.img !== undefined) {
@@ -43,7 +56,7 @@ export class PreviewComponent implements OnInit {
    }
   }
 
-  public generatePreview():void{
+  public generatePreview(){
     if (!this.previewFileArray.length) {
       this.ipcService.send('open-information-dialog',"Please add files first");
       return;
@@ -68,7 +81,6 @@ export class PreviewComponent implements OnInit {
       this.previewInterval = null;
     }
     this.isRunnuing = !this.isRunnuing;
-
   }
 
 }
