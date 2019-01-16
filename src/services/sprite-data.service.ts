@@ -46,6 +46,7 @@ export class SpriteDataService {
     let files = filesArray.splice(0,this.numberOfImagesPerSprite);
     Spritesmith.run({ src: files, algorithm: this.spriteConfig.layout, algorithmOpts: {sort: false},padding: this.spriteConfig.spacing }, (err, result) => {
       if (err) {
+        console.log("err ",err);
         alert("Something went wrong while processing images");
         return 0;
       }

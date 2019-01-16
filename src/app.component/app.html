@@ -14,6 +14,7 @@
         <button class="mybtn scale_btn" (click)="resizeImages()">{{ useResizedImages ? 'Remove scale factor' : 'Apply scale factor'}}</button>
       </div>
     </config>
+    <div #d ><span>d</span></div>
   </div>
 
   <preview class="preview" [previewFileArray]=fileArray [changePreview]="changePreview" [(previewIndex)]=selectedIndex ></preview>
