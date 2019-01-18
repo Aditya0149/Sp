@@ -40,10 +40,13 @@ export class AppComponent implements OnInit {
   public showOverlay = false;
   public scaleFactor = 0.5;
   public changePreview = true;
+  private loadedImagesCount = 0;
+  private notLoadedImages = [];
 
   constructor(private ipcService: IpcService, private zone:NgZone, private spriteDataService:SpriteDataService, public sanitizer: DomSanitizer){}
 
   ngOnInit() {
+    this.showOverlay = true;
     this.ipcService.on('selected-directory', (event, filesPath) => {
       this.getFilesByPath(filesPath);
     });
@@ -52,45 +55,115 @@ export class AppComponent implements OnInit {
     });
     this.ipcService.on('toggle-display', (event,data) => {
       this.zone.run( ()=> {
+        this.spriteDataService.showThumbnails = true;
         this.currentDisplay = data;
       })
     });
     this.ipcService.send("disable-menuitem","export");
+    this.ipcService.send("enable-menuitem","add_images");
+    this.showOverlay = false;
   }
 
   ngAfterViewChecked() {
     if(document.getElementsByClassName("border-success")[0] && this.previewComponent.isRunnuing) document.getElementsByClassName("border-success")[0].scrollIntoView(false);
   }
 
-  private getFilesByPath(filesPath){ // called after adding images by menu
-    fs.readdir(filesPath[0], (err, files) => {
-      files.forEach( ( file, index ) => {
-        console.log(index);
-        let fileData = path.parse(file);
-        if (fileData.ext == "." + this.spriteDataService.spriteConfig.fileType) { // ignore if file format is not supported
-            this.zone.run( ()=> {
-              this.fileArray.push({
-                name:fileData.name+fileData.ext,
-                path:filesPath[0],
-                fullpath:path.join(filesPath[0],fileData.name+fileData.ext)
-              });
-          });
-        }
-      });
+  private getFilesByPath(files){ // called after adding images by menu
+    this.addImagesOperationInit();
+    let ignoredFiles = [];
+    if(!files.length) {
+      alert("Please add valid images only.");
+      this.showOverlay = false;
+      return;
+    }
+    files.forEach( ( file, index ) => {
+      let fileData = path.parse(file);
+      if (this.spriteDataService.spriteConfig.allowedFileType.indexOf(fileData.ext.toLocaleLowerCase()) > -1) { // ignore if file format is not supported
+          let fullpath = path.join(fileData.dir,fileData.name+fileData.ext);
+          this.zone.run( ()=> {
+            this.fileArray.push({
+              name:fileData.name+fileData.ext,
+              path:fileData.dir,
+              fullpath:fullpath
+            });
+        });
+        this.isImageLoaded(fullpath);
+      } else {
+        ignoredFiles.push(fileData.name);
+      }
     });
-    this.ipcService.send("enable-menuitem","export");
+    this.handleUnsupportedFiles(ignoredFiles);
   }
 
   public getFilesByDrop(event) { // called after adding images by drag and drop
     event.preventDefault();
+    let ignoredFiles = [];
+    this.addImagesOperationInit();
+    if(!event.dataTransfer.files.length) {
+      alert("Please drag valid files only.");
+      this.showOverlay = false;
+      return;
+    }
     for (let f of event.dataTransfer.files) {
+      let fileData = path.parse(f.path);
+      if (this.spriteDataService.spriteConfig.allowedFileType.indexOf(fileData.ext.toLocaleLowerCase()) > -1) {
         this.fileArray.push({
           name:f.name,
           path:f.path.replace(f.name,""),
           fullpath:f.path
         });
+        this.isImageLoaded(f.path);
+      } else {
+        ignoredFiles.push(f.path);
+      }
+    }
+    this.handleUnsupportedFiles(ignoredFiles);
+  }
+
+  private handleUnsupportedFiles(ignoredFiles){
+    if(ignoredFiles.length) {
+      if(ignoredFiles.length == 1 && path.parse(ignoredFiles[0]).ext == "" ) alert("Cannot add folder here. Please add files only.");
+      else alert("Few files are not added due to unsupported file formats.");
+      this.showOverlay = false;
     }
     this.ipcService.send("enable-menuitem","export");
+  }
+
+  private addImagesOperationInit() {
+    this.currentDisplay = 'File list'; // switch the display to 'file list'
+    this.isRunnuing = false; // pause the preview before adding images.
+    this.showOverlay = true; // show the overlay until all images gets load
+    this.spriteDataService.showThumbnails = true;
+    this.notLoadedImages = [];
+  }
+
+  private isImageLoaded(url){
+    let img = new Image();
+    img.onload = () => {
+      this.loadedImagesCount++;
+      console.log("loaded",url);
+      if(this.loadedImagesCount == this.fileArray.length) this.addImagesOperationEnd();
+    };
+    img.onerror = () => {
+      this.loadedImagesCount++;
+      console.log("not loaded",url);
+      this.notLoadedImages.push(url);
+      if(this.loadedImagesCount == this.fileArray.length) this.addImagesOperationEnd();
+    };
+    img.src = url;
+  }
+
+  private addImagesOperationEnd(){
+    setTimeout(()=>{
+      this.zone.run( () => this.showOverlay = false );
+      if(this.notLoadedImages.length) {
+        alert("Few images not loaded due to unsupported format or they are currupted. They will be removed.");
+        this.zone.run( () => {
+          this.fileArray = this.fileArray.filter((image) => if( this.notLoadedImages.indexOf(image.fullpath) == -1 ) return image );
+          this.loadedImagesCount = this.fileArray.length;
+        });
+      }
+    },0);
   }
 
   public allowDrop(ev) { // to support drag and drop
@@ -147,13 +220,12 @@ export class AppComponent implements OnInit {
   }
 
   private writeImageData(destinationPath){ // called after clicked on export menu item
-    this.ipcService.send("disable-menuitem","create_new");
     this.ipcService.send("disable-menuitem","export");
     this.ipcService.send("disable-menuitem","add_images");
     this.zone.run( ()=> { this.showOverlay = true; });
     let sourcePath = "";
     this.fileArray.forEach( file => {
-      if (this.useResizedImages) sourcePath = path.join(file.path,'scaled/',file.name);
+      if (this.useResizedImages) sourcePath = path.join(file.path,'scaled/',path.parse(file.fullpath).name + ".png");
       else sourcePath  = path.join(file.path,file.name);
       this.files.push(sourcePath);
     } );
@@ -168,11 +240,13 @@ export class AppComponent implements OnInit {
     this.spriteDataService.spriteDataObservable.subscribe(data => {
       this.allSpritesArray.push(data);
     },
-    err => { console.log(err); },
+    err => {
+      this.zone.run( () => this.showOverlay = false );
+      this.ipcService.send("enable-menuitem","export");
+    },
     complete => {
         let filepathWithPrefix = path.join(destinationPath,this.spriteDataService.spriteConfig.animationPrefix);
         this.allSpritesArray.forEach( ( spriteData, index ) => {
-          console.log(spriteData.properties);
           fs.writeFileSync(filepathWithPrefix + "_" + index + ".png", spriteData.image, 'binary', (err) => {
                 if (err) throw err
             });
@@ -216,6 +290,9 @@ export class AppComponent implements OnInit {
     this.showOverlay = true;
     let dirname = "";
     this.fileArray.forEach((image,index)=>{
+      let fileData = path.parse(image.fullpath);
+      let fileType = fileData.ext.replace(".","");
+      let fileName = fileData.name;
       let img = new Image();
       let oc = document.createElement('canvas'),
           octx = oc.getContext('2d');
@@ -226,7 +303,7 @@ export class AppComponent implements OnInit {
         let base64Data = oc.toDataURL('image/png').replace(/^data:image\/png;base64,/, "");
         dirname = path.join(image.path,'scaled/');
         if (!fs.existsSync(dirname)) fs.mkdirSync(dirname);
-        fs.writeFileSync( dirname + image.name, base64Data , 'base64', (err) => {
+        fs.writeFileSync( dirname + fileName +".png", base64Data , 'base64', (err) => {
             if (err) throw err
         });
         if(this.fileArray.length - 1 == index) {
@@ -238,15 +315,7 @@ export class AppComponent implements OnInit {
       img.src = path.join(image.path,image.name);
     });
   }
-
-}
-
-@Directive({
-  selector: '[Movable]'
-})
-export class MovableDirective {
-  constructor(private el: ElementRef) { }
-  @HostListener('drop',['$event']) public onDrop(event) {
-    console.log(this.el.nativeElement.clientWidth, event.dataTransfer.files);
+  public deleteImage(index){
+    this.fileArray.splice(index,1);
   }
 }

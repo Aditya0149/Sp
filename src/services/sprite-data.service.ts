@@ -20,7 +20,7 @@ export class SpriteDataService {
     layout : "left-right";
     maxArea : -1;
     spacing : 1;
-    fileType : "png";
+    allowedFileType : [".png",".jpeg",".jpg",".gif"];
     animationPrefix : "anim";
   };
   public layoutArray = ["top-down","left-right","diagonal","alt-diagonal","binary-tree"];
@@ -34,6 +34,7 @@ export class SpriteDataService {
   private areaPerImage = 0;
   private numberOfImagesPerSprite = 10;
   public message = new BehaviorSubject("");
+  public showThumbnails = true;
 
   constructor(private ipcService:IpcService){};
 
@@ -44,10 +45,12 @@ export class SpriteDataService {
       this.isProgressBarOpen = true;
     }
     let files = filesArray.splice(0,this.numberOfImagesPerSprite);
-    Spritesmith.run({ src: files, algorithm: this.spriteConfig.layout, algorithmOpts: {sort: false},padding: this.spriteConfig.spacing }, (err, result) => {
+    Spritesmith.run({ src: files, padding: this.spriteConfig.spacing, algorithm: this.spriteConfig.layout, algorithmOpts: {sort: false} }, (err, result) => {
       if (err) {
-        console.log("err ",err);
-        alert("Something went wrong while processing images");
+        alert("Something went wrong while processing images. Please check if the added images are valid format or not.");
+        this.isProgressBarOpen = false;
+        this.progress = 0;
+        this.spriteData.error(err);
         return 0;
       }
       this.spriteData.next(result);
@@ -63,7 +66,4 @@ export class SpriteDataService {
       }
     });
   }
-
-
-
 }

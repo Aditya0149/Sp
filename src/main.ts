@@ -3,7 +3,7 @@ import { enableLiveReload , addBypassChecker} from 'electron-compile';
 const ProgressBar = require('electron-progressbar');
 const ipc = require('ipc');
 const path = require("path");
-addBypassChecker((filePath) => { return filePath.indexOf(app.getAppPath()) === -1 && (/.jpg/.test(filePath) || /.ms/.test(filePath) || /.png/.test(filePath)); });
+addBypassChecker((filePath) => { return filePath.indexOf(app.getAppPath()) === -1 && (/.jpg/.test(filePath) || /.JPG/.test(filePath) || /.ms/.test(filePath) || /.gif/.test(filePath) || /.GIF/.test(filePath) || /.PNG/.test(filePath) || /.png/.test(filePath)); });
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -135,9 +135,6 @@ ipcMain.on('open-progress-bar', (event,maximumValue) => {
 });
 
 
-
-
-
 let handleCrash = (msg) => {
   let crashAndHangOptions = {
     type:"info",
@@ -155,6 +152,30 @@ let template = [
   {
     label:"Animation",
     submenu: [{
+        label:"Add images",
+        id:"add_images",
+        accelerator: (() => {
+          if (process.platform === 'darwin') {
+            return 'Command+O'
+          } else {
+            return 'Ctrl+O'
+          }
+        })(),
+        click: (item,focusedWindow) => {
+          dialog.showOpenDialog({
+            title : "Select files",
+            buttonLabel : "Select files",
+            filters: [ {name: 'Images', extensions: ['jpg','jpeg','png','.gif']} ],
+            FilterIndex : 1,
+            properties: ['openFile', 'showHiddenFiles', 'multiSelections']
+          }, (files) => {
+            if (files) {
+              mainWindow.webContents.send('selected-directory', files)
+            }
+          })
+        }
+      },
+      {
         label:"Create new",
         id:"create_new",
         accelerator: (() => {
@@ -175,30 +196,7 @@ let template = [
             if (index === 0) focusedWindow.reload();
           })
         }
-      },
-      {
-      label:"Add images",
-      id:"add_images",
-      accelerator: (() => {
-        if (process.platform === 'darwin') {
-          return 'Command+O'
-        } else {
-          return 'Ctrl+O'
-        }
-      })(),
-      click: (item,focusedWindow) => {
-        dialog.showOpenDialog({
-          title : "Select a source folder",
-          buttonLabel : "Select folder",
-          filters: [ {name: 'Images', extensions: ['jpg', 'png', 'gif']} ]
-          properties: ['openFile', 'openDirectory','multiSelections']
-        }, (files) => {
-          if (files) {
-            mainWindow.webContents.send('selected-directory', files)
-          }
-        })
-      }
-    }]
+      }]
   },
 
   {

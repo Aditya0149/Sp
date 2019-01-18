@@ -1,22 +1,25 @@
 <div class="app_wrapper row">
-  <div>
+  <div id="filesView" *ngIf="spriteDataService.showThumbnails">
     <div (drop)="getFilesByDrop($event)" (dragover)="allowDrop($event)" class="file_list" *ngIf="currentDisplay == 'File list'">
-      <div *ngIf="!fileArray.length" class="drag_files"><i class="fas fa-file"></i>&nbsp;Drag Files Here</div>
+      <div *ngIf="!fileArray.length" class="drag_files"><i class="fas fa-file"></i>&nbsp;Drag Files Here<br/>or<br/>Add files from - Animation > Add Images</div>
       <div *ngFor="let file of fileArray; let i = index" [ngClass]="['image_' + i,'file_list_item','card']" [class.border-success]="previewComponent.previewIndex == i" (click)="selectedIndex=i" (dragover)="allowDrop($event)">
         <img class="card-img-top" [src]="sanitizer.bypassSecurityTrustUrl(file.fullpath)" [alt]="file.name"/>
-        <div class="card-body"><h5 class="card-title"></h5>{{file.name}}</div>
+        <div class="card-body">
+          {{file.name}}
+          <span class="buttons">
+            <i class="far fa-trash-alt" (click)="deleteImage(i)"></i>
+          </span>
+        </div>
       </div>
     </div>
-
     <config *ngIf="currentDisplay == 'Export options'" class="border_box config">
-      <div class="form-group scaleFactor-form-group">
+      <div scale class="form-group scaleFactor-form-group">
         <input [(ngModel)]="scaleFactor" class="form-control" type="number" [min]="0.1" [max]="1" >
         <button class="mybtn scale_btn" (click)="resizeImages()">{{ useResizedImages ? 'Remove scale factor' : 'Apply scale factor'}}</button>
       </div>
+      <button close class="mybtn close_btn" (click)="currentDisplay = 'File list'" >Cancel</button>
     </config>
-    <div #d ><span>d</span></div>
   </div>
-
   <preview class="preview" [previewFileArray]=fileArray [changePreview]="changePreview" [(previewIndex)]=selectedIndex ></preview>
   <div class="downloads" *ngIf="showDownlaods">
     <i (click)="showDownlaods = false;" class="fas fa-times"></i>

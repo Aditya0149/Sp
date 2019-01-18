@@ -20,7 +20,6 @@ export class ConfigComponent{
     layout : new FormControl(this.spriteConfig.layout);
     maxArea : new FormControl(this.spriteConfig.maxArea);
     spacing : new FormControl(this.spriteConfig.spacing);
-    fileType : new FormControl(this.spriteConfig.fileType);
     animationPrefix : new FormControl(this.spriteConfig.animationPrefix);
   })
 

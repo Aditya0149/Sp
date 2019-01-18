@@ -14,16 +14,27 @@ const path = require("path");
 @Component({
   selector: 'preview',
   template:
-  `<div>
-    <div id="previewWrapper" data-toggle="tooltip" title="{{this.isRunnuing ? 'pause' : 'play'}}" >
-      <img (click)="generatePreview($event)" id="preview_img" src="../images/play_btn.png" />
+  `<div class="outerPreviewWrapper">
+    <i [ngClass]="{
+      'toggle_preview':true,
+      'fas':true,
+      'fa-angle-right':!spriteDataService.showThumbnails,
+      'fa-angle-left':spriteDataService.showThumbnails
+     }"
+    *ngIf="this.previewFileArray.length" id="togglePreviewMode"
+    (click)="spriteDataService.showThumbnails = !spriteDataService.showThumbnails" >
+    </i>
+    <div id="previewWrapper" (click)="generatePreview($event)" data-toggle="tooltip" title="{{this.isRunnuing ? 'pause' : 'play'}}" >
+        <i *ngIf="!isRunnuing" class="fas fa-play-circle"></i>
+        <i *ngIf="isRunnuing" class="fas fa-pause-circle"></i>
+      <img id="preview_img" src="../images/play_btn.png" />
     </div>
   </div>`,
   styleUrls: ['./index.css']
 })
 export class PreviewComponent implements OnInit {
   @Input() private previewFileArray;
-  @Input() private previewIndex;
+  @Input() public previewIndex;
   @Input() private changePreview;
   @Output() private previewIndexchange = new EventEmitter<number>();
   private frameRate = 24;
@@ -61,7 +72,7 @@ export class PreviewComponent implements OnInit {
       this.ipcService.send('open-information-dialog',"Please add files first");
       return;
     }
-
+    if(!this.isRunnuing) this.spriteDataService.showThumbnails = false;
     this.img = document.getElementById("preview_img");
     if(!this.previewInterval) {
       this.previewInterval = setInterval(()=>{

@@ -34,8 +34,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f5f5f4;
+  background-color: #cecece;
   width: 100%;
+  position: relative;
+}
+
+.outerPreviewWrapper{
+  min-width: 570px;
+
 }
 
 #previewWrapper{
@@ -44,6 +50,26 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  cursor: pointer;
+  width: 100%;
+}
+
+#previewWrapper i {
+  font-size: 62px;
+  pointer-events: none;
+  position: absolute;
+  cursor: pointer;
+  color: #fff;
+  box-shadow: 0px 2px 23px rgba(0,0,0,0.7);
+  border-radius: 50%;
+}
+
+.card {
+  cursor: pointer;
+}
+
+i.fa-pause-circle {
+  display: none;
 }
 
 .border_box {
@@ -61,9 +87,7 @@
   margin: 0 auto;
   display: block;
   cursor: pointer;
-  width: 100%;
 }
-
 
 .file_list{
   overflow-y: auto;
@@ -107,12 +131,10 @@ button[disabled] {
 }
 
 .drag_files {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   font-size: 20px;
   width: 100%;
   font-weight: bold;
+  text-align: center;
 }
 .scale_images{
   display: flex;
@@ -153,7 +175,7 @@ button[disabled] {
   position: fixed;
   width: 100%;
   height: 100%;
-  z-index: 100;
+  z-index: 200;
 }
 .downloads span {
   cursor: pointer;
@@ -179,12 +201,12 @@ button[disabled] {
 }
 
 .mybtn {
-  width: 50%;
+  width: 47.5%;
   cursor: pointer;
   height: 40px;
   text-transform: uppercase;
   box-shadow: none;
-  display: block;
+  display: inline-block;
   margin: 2% auto;
 }
 .scale_btn {
@@ -244,4 +266,64 @@ button[disabled] {
 
 #previewWrapper:hover .tooltiptext {
     visibility: visible;
+}
+
+#previewWrapper:hover i {
+    display: block;
+}
+.card {
+  height: 250px;
+}
+.card:hover {
+  border: green solid 3px;
+}
+.card-body {
+  text-overflow: ellipsis;
+  padding: 6% 14%;
+  border-top: 1px solid rgba(0,0,0,.125);
+  position: relative;
+}
+/* #togglePreviewMode{
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 99;
+  font-size: 40px;
+  cursor: pointer;
+  color: green;
+  opacity: 1;
+  transition: transform 0.25s linear, opacity 0.25s linear;
+} */
+#togglePreviewMode:hover{
+  width: 35px;
+  height: 35px;
+  opacity: 0.8;
+}
+.buttons {
+  position: absolute;
+  font-size: 12px;
+  right: 4px;
+  bottom: 4px;
+}
+
+.close_btn {
+}
+
+.toggle_preview {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  width: 30px;
+  height: 30px;
+  background: #0052cc;
+  border-radius: 0 50% 50% 0;
+  color: #fff;
+  z-index: 99;
+  font-size: 25px;
+  cursor: pointer;
+  opacity: 1;
+  transition: width 0.25s linear, height 0.25s linear, opacity 0.25s linear;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }

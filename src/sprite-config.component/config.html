@@ -1,5 +1,5 @@
 <div>
-    <ng-content></ng-content>
+    <ng-content select="[scale]"></ng-content>
     <form [formGroup]="configForm" (ngSubmit)="onSubmit()">
 
       <div class="form-group">
@@ -19,16 +19,13 @@
       </div>
       <div class="form-group">
         <label class="form-label">Spacing</label>
-        <input required class="form-control" type="text" formControlName="spacing">
-      </div>
-      <div [hidden]="true" class="form-group">
-        <label class="form-label">FileType</label>
-        <input required class="form-control" type="text" formControlName="fileType">
+        <input required class="form-control" type="number" formControlName="spacing">
       </div>
       <div class="form-group animation-form-group">
         <label class="form-label">Animation Prefix</label>
         <input required class="form-control" type="text" formControlName="animationPrefix">
       </div>
       <button type="submit" class="mybtn" >Apply</button>
-    </form>
+      <ng-content select="[close]"></ng-content>
+    </form>    
 </div>
